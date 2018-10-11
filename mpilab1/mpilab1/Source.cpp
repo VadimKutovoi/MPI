@@ -14,6 +14,7 @@ void main(int argc, char *argv[])
 
 	for (int i = 0; i < rows; i++) {
 		matrix[i] = new int[columns];
+		sum[i] = 0;
 		for (int j = 0; j < columns; j++)
 			matrix[i][j] = i + j;
 	}
@@ -46,6 +47,11 @@ void main(int argc, char *argv[])
 		
 		/*MPI_Send(&row_sum, 1, MPI_INT, 0, rank, MPI_COMM_WORLD);*/
 		printf("Process %i send sum = %i ", rank, row_sum);
+	}
+	else {
+		for (int i = 0; i < columns; i++)
+			sum[0] += matrix[0][i];
+			printf("Process %i send sum = %i ", rank, sum[0]);
 	}
 
 	MPI_Finalize();
