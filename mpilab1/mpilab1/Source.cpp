@@ -4,10 +4,10 @@
 #include <stdlib.h>
 #include <time.h>
 
-void main(/*int argc, char *argv[]*/)
+void main(int argc, char *argv[])
 {
 	//parallel program
-	MPI_Init(NULL, NULL);
+	MPI_Init(&argc, &argv);
 
 	int rank, size, rows = 5, columns = 5;
 	int **matrix = NULL, *recv_row = NULL, *sum = NULL;
@@ -58,7 +58,6 @@ void main(/*int argc, char *argv[]*/)
 		for (int i = 0; i < rows; i++) {
 			if (i%size != 0)
 				MPI_Send(matrix[i], columns, MPI_INT, i%size, i, MPI_COMM_WORLD);
-			std::cout << "Root sended row " << i << std::endl;
 		}
 
 		std::cout << "Finished\n" << std::endl;
@@ -88,14 +87,12 @@ void main(/*int argc, char *argv[]*/)
 			}
 				
 		}
-		std::cout << rank << " proccess finished calculations" << std::endl;
 	}
 
 	if (rank == 0) {
 		for (int i = 1; i < rows; i++) {
 			if (i%size != 0) {
-				MPI_Recv(&sum[i], 1, MPI_INT, MPI_ANY_SOURCE, i, MPI_COMM_WORLD, &status);
-				std::cout << "Root recieved row " << i << std::endl;
+				MPI_Recv(&sum[i], 1, MPI_INT, MPI_ANY_SOURCE, i, MPI_COMM_WORLD, &status);				
 			}
 		}
 
@@ -108,10 +105,7 @@ void main(/*int argc, char *argv[]*/)
 
 	MPI_Finalize();
 
-	for (int j = 0; j < columns; j++)
-	{
-		sum[j] = 0;
-	}
+	for (int j = 0; j < columns; j++) sum[j] = 0;
 
 	std::cout << std::endl;
 	//sequential program
@@ -127,12 +121,11 @@ void main(/*int argc, char *argv[]*/)
 		}
 
 	time(&end);
-	long seconds = difftime(end, start);
+	double seconds = difftime(end, start);
 	std::cout << "sequential program time = " << seconds << std::endl;
 	
 	for (int i = 0; i < rows; i++) {
 		std::cout << "sum2[" << i << "] = " << sum[i] << std::endl;
-		
 	}
 
 	for (int i = 0; i < rows; i++) {
