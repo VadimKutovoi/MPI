@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+
 void generate_matr(double* matr,int row_c, int column_c) {
 	for (int i = 0; i < row_c * column_c; i++) {
 		matr[i] = rand() % 10;
@@ -18,86 +19,63 @@ void print_matr(double* matr, int row_c, int column_c) {
 	}
 }
 
+
 void main(int argc, char *argv[])
 {
 	//parallel program
 	MPI_Init(&argc, &argv);
 
-	int rank, size, rows = 5, columns = 5;
-	double *matrix = NULL, *recv_row = NULL, *sum = NULL;
+	int rank, size, rows = 5, columns = 5, srows = 1;
+	double *matrix = NULL, *recv_row = NULL, *sum = NULL, *lsum = NULL;
 	double times;
-	MPI_Status status;
 
 	MPI_Comm_size(MPI_COMM_WORLD, &size);
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
 	if (rank == 0) {
 		std::cout << "Comm size = " << size << std::endl;
-		
 		std::cout << "Rows = ";
 		std::cin >> rows; 
-		
 		std::cout << "Columns = ";
 		std::cin >> columns;
 
 		std::cout << "Generating matrix.." << std::endl;
 
 		matrix = new double[columns * rows];
+		sum = new double[rows];
 
 		generate_matr(matrix, rows, columns);
 		print_matr(matrix, rows, columns);
 
+		int srows = 1;
+
 		times = MPI_Wtime();
 	}
 
+	recv_row = new double[columns];
 	
-	
-	//MPI_Bcast(&rows, 1, MPI_INT, 0, MPI_COMM_WORLD);
+	MPI_Bcast(&rows, 1, MPI_INT, 0, MPI_COMM_WORLD);
 	MPI_Bcast(&columns, 1, MPI_INT, 0, MPI_COMM_WORLD);
-	//MPI_Bcast(&matrix, columns * rows, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-
-	//изменить матрицу на массив, инт на дабл, передалать сенд.
-	if (rank == 0) {
-		for (int i = 0; i < rows; i++) {
-			if (i%size != 0)
-				MPI_Send(matrix, columns, MPI_INT, i%size, i, MPI_COMM_WORLD);
-		}
+	MPI_Bcast(&srows, 1, MPI_INT, 0, MPI_COMM_WORLD);
+	MPI_Scatter(matrix, columns * srows, MPI_DOUBLE, recv_row, columns * srows, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+	
+	lsum = new double[1];
+	
+	for (int i = 0; i < srows; i++) lsum[i] = 0;
+	
+	int i = 0;
+	std::cout << rank << "process recieved " << srows << "rows" << std::endl;
+	for (int j = 0; j < columns * srows; j++) {
+		lsum[i] += recv_row[j];
+		if ((j + 1) % columns == 0) i++;
 	}
-	if(rank != 0) {
-		recv_row = new double[columns];
-		for (int i = rank; i < rows; i += size) {
-			int row_sum = 0;
+	std::cout << rank << " - rank, sum = " << lsum[0] << std::endl;
+	
 
-			MPI_Recv(recv_row, columns, MPI_INT, 0, i, MPI_COMM_WORLD, &status);
-			//std::cout << "Process " << rank << " recieved row" << std::endl;
-
-			for (int j = 0; j < columns; j++)
-				row_sum += recv_row[j];
-
-			MPI_Send(&row_sum, 1, MPI_INT, 0, i, MPI_COMM_WORLD); //Gather
-			//std::cout << "Process " << rank << " sended row" << std::endl;
-		}
-		delete recv_row;
-	}
-	else {
-		for (int i = rank; i < rows; i += size)
-		{
-			for (int j = 0; j < columns; j++)
-			{
-				sum[i] += matrix[i];
-			}
-		}
-	}
+	MPI_Gather(lsum, srows, MPI_DOUBLE, sum, srows, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
 	if (rank == 0) {
-		for (int i = 1; i < rows; i++) {
-			if (i%size != 0) {
-				MPI_Recv(&sum[i], 1, MPI_INT, MPI_ANY_SOURCE, i, MPI_COMM_WORLD, &status);				
-			}
-		}
-
 		std::cout << "Time = " << MPI_Wtime() - times << std::endl;
-
 		for (int i = 0; i < rows; i++) {
 			std::cout << "sum[" << i << "] = " << sum[i] << std::endl;
 		}
@@ -113,11 +91,11 @@ void main(int argc, char *argv[])
 
 		times = MPI_Wtime();
 
-		for (int i = 0; i < rows; i++)
-			for (int j = 0; j < columns; j++)
-			{
-				sum[i] += matrix[i][j];
-			}
+		i = 0;
+		for (int j = 0; j < columns * rows; j++) {
+			sum[i] += matrix[j];
+			if ((j + 1) % columns == 0) i++;
+		}
 	
 		std::cout << "Time = " << MPI_Wtime() - times << std::endl;
 
@@ -125,12 +103,11 @@ void main(int argc, char *argv[])
 			std::cout << "sum2[" << i << "] = " << sum[i] << std::endl;
 		}
 
-
-		for (int i = 0; i < rows; i++) {
-			delete[] matrix[i];
-		}
 		delete[] matrix, sum;
 	}
+
+	MPI_Barrier(MPI_COMM_WORLD);
+	delete[] lsum, recv_row;
 
 	MPI_Finalize();
 }
