@@ -47,7 +47,7 @@ void main(int argc, char *argv[])
 		generate_matr(matrix, rows, columns);
 		print_matr(matrix, rows, columns);
 
-		int srows = 1;
+		srows = rows / size;
 
 		times = MPI_Wtime();
 	}
@@ -59,12 +59,12 @@ void main(int argc, char *argv[])
 	MPI_Bcast(&srows, 1, MPI_INT, 0, MPI_COMM_WORLD);
 	MPI_Scatter(matrix, columns * srows, MPI_DOUBLE, recv_row, columns * srows, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 	
-	lsum = new double[1];
+	lsum = new double[srows];
 	
 	for (int i = 0; i < srows; i++) lsum[i] = 0;
 	
 	int i = 0;
-	std::cout << rank << "process recieved " << srows << "rows" << std::endl;
+	std::cout << rank << " process recieved " << srows << " rows" << std::endl;
 	for (int j = 0; j < columns * srows; j++) {
 		lsum[i] += recv_row[j];
 		if ((j + 1) % columns == 0) i++;
