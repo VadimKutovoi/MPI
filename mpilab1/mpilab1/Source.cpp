@@ -33,11 +33,13 @@ void main(int argc, char *argv[])
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
 	if (rank == 0) {
-		std::cout << "Comm size = " << size << std::endl;
-		std::cout << "Rows = ";
-		std::cin >> rows; 
-		std::cout << "Columns = ";
-		std::cin >> columns;
+		if (argc == 3) {
+			rows = atoi(argv[1]);
+			columns = atoi(argv[2]);
+		}
+		else {
+			rows = columns = size;
+		}
 
 		std::cout << "Generating matrix.." << std::endl;
 
