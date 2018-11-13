@@ -5,18 +5,32 @@
 #include <stdlib.h>
 #include <time.h>
 #include <Windows.h>
+#include <algorithm>
 
 const int SERVER = 0;
 const int READ_REQUEST = 1;
 const int FINISH_READ = 3;
 const int WRITE_REQUEST = 4;
 const int REQUEST = 5;
-
 using namespace std;
+
+char* getCmdOption(char ** begin, char ** end, const std::string & option)
+{
+	char ** itr = std::find(begin, end, option);
+	if (itr != end && ++itr != end)
+	{
+		return *itr;
+	}
+	return 0;
+}
+
+bool cmdOptionExists(char** begin, char** end, const std::string& option)
+{
+	return std::find(begin, end, option) != end;
+}
 
 void main(int argc, char *argv[])
 {
-	int count = 10;
 	int rank, size, data = 0, request = -1, writersCount = 3, index = 0, rc = 0, readyToRecieve = 1, respond = 0;
 	time_t t;
 	MPI_Status status;
@@ -26,13 +40,21 @@ void main(int argc, char *argv[])
 	MPI_Comm_size(MPI_COMM_WORLD, &size);
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
+	if (cmdOptionExists(argv, argv + argc, "-w"))
+	{
+		char * wcount = getCmdOption(argv, argv + argc, "-w");
+		writersCount = atoi(wcount);
+	}
+
 	//server
 	if (!rank) {
+
 		int curReadersCount = 0;
 		int curWriterRank;
 		bool isBusy = false;
 
 		cout << "Starting Server" << endl;
+		cout << "Writers count = " << writersCount << endl;
 		
 		while (true) {
 			if (readyToRecieve) {
