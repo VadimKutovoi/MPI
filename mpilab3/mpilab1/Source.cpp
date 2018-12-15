@@ -1,4 +1,4 @@
-﻿//#define _CRT_SECURE_NO_WARNINGS
+//#define _CRT_SECURE_NO_WARNINGS
 #include "mpi.h"
 #include <iostream>
 #include <fstream>
@@ -197,7 +197,8 @@ int main(int argc, char *argv[])
 		if (verbose) {
 			fstream log;
 			log.open("log.txt", ios::out | ios::app);
-			log << "Result : " << res << " Process count : " << procNum << " Time : " << estimated_time << endl;
+			//log << "Result : " << res << " Process count : " << procNum << " Time : " << estimated_time << endl;
+			log << procNum  << " " << estimated_time << endl;
 			log.close();
 		}
 	}
